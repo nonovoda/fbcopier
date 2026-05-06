@@ -281,6 +281,27 @@
           <div class="hint">Формат JSON. Можно оставить пустым. Скрипт заменит значения в обычном тексте и внутри JSON-полей.</div>
         </div>
 
+        <div class="field row">
+          <div>
+            <label for="pixelIdInput">NEW_PIXEL_ID</label>
+            <input id="pixelIdInput" type="text" placeholder="1234567890" />
+          </div>
+          <div>
+            <label for="pageIdInput">NEW_PAGE_ID</label>
+            <input id="pageIdInput" type="text" placeholder="1234567890" />
+          </div>
+        </div>
+        <div class="field row">
+          <div>
+            <label for="igIdInput">NEW_IG_ID</label>
+            <input id="igIdInput" type="text" placeholder="1784..." />
+          </div>
+          <div>
+            <label for="forceStatusInput">Статус после импорта</label>
+            <input id="forceStatusInput" type="text" value="PAUSED" />
+          </div>
+        </div>
+
         <div class="field">
           <label>4. Режим чистки</label>
           <label class="check"><input id="keepAdCreativeStructure" type="checkbox" checked /> Ad import mode: сохранить creative-структуру объявлений, чтобы Meta не блокировала строки Ad из-за missing creative fields.</label>
@@ -366,6 +387,10 @@
       outputFormat: document.getElementById("outputFormat"),
       suffixInput: document.getElementById("suffixInput"),
       replacementsInput: document.getElementById("replacementsInput"),
+      pixelIdInput: document.getElementById("pixelIdInput"),
+      pageIdInput: document.getElementById("pageIdInput"),
+      igIdInput: document.getElementById("igIdInput"),
+      forceStatusInput: document.getElementById("forceStatusInput"),
       keepAdCreativeStructure: document.getElementById("keepAdCreativeStructure"),
       dropDangerousColumns: document.getElementById("dropDangerousColumns"),
       cleanJsonCells: document.getElementById("cleanJsonCells"),
@@ -507,6 +532,32 @@
     }
 
     
+    const clearExactColumns = new Set([
+      "campaign id",
+      "ad set id",
+      "adset id",
+      "ad id",
+      "image hash",
+      "video id",
+      "asset feed id",
+      "created time",
+      "last updated time",
+      "reporting starts",
+      "reporting ends"
+    ]);
+
+    const replaceValueColumns = {
+      "pixel id": () => els.pixelIdInput.value.trim(),
+      "facebook page id": () => els.pageIdInput.value.trim(),
+      "instagram id": () => els.igIdInput.value.trim()
+    };
+
+    const statusColumns = new Set(["campaign status", "ad set status", "ad status"]);
+
+    function normalizeColumnKey(column) {
+      return normalizeName(column);
+    }
+
     const clearCellPatterns = [
       /(^|\b)campaign\s*id(\b|$)/i,
       /(^|\b)ad\s*set\s*id(\b|$)/i,
@@ -595,8 +646,19 @@ function isCreativeStructureColumn(column) {
       let cleanedRows = rows.map((row) => {
         const cleanedRow = {};
         keptColumns.forEach((column) => {
+          const normalizedColumn = normalizeColumnKey(column);
           const cleanedValue = cleanCell(row[column], column, replacements, options);
-          cleanedRow[column] = shouldClearCellByColumn(column) ? "" : cleanedValue;
+
+          if (clearExactColumns.has(normalizedColumn) || shouldClearCellByColumn(column)) {
+            cleanedRow[column] = "";
+          } else if (statusColumns.has(normalizedColumn)) {
+            cleanedRow[column] = els.forceStatusInput.value.trim() || "PAUSED";
+          } else if (replaceValueColumns[normalizedColumn]) {
+            const replacement = replaceValueColumns[normalizedColumn]();
+            cleanedRow[column] = replacement || row[column];
+          } else {
+            cleanedRow[column] = cleanedValue;
+          }
         });
         return cleanedRow;
       });
@@ -737,6 +799,10 @@ function isCreativeStructureColumn(column) {
       els.outputFormat.value = "same";
       els.suffixInput.value = "_cleaned";
       els.replacementsInput.value = "";
+      els.pixelIdInput.value = "";
+      els.pageIdInput.value = "";
+      els.igIdInput.value = "";
+      els.forceStatusInput.value = "PAUSED";
       els.keepAdCreativeStructure.checked = true;
       els.dropDangerousColumns.checked = true;
       els.cleanJsonCells.checked = true;
