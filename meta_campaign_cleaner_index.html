@@ -284,7 +284,7 @@
         <div class="field">
           <label>4. Режим чистки</label>
           <label class="check"><input id="keepAdCreativeStructure" type="checkbox" checked /> Ad import mode: сохранить creative-структуру объявлений, чтобы Meta не блокировала строки Ad из-за missing creative fields.</label>
-          <label class="check"><input id="dropDangerousColumns" type="checkbox" checked /> Удалять опасные колонки: Campaign ID, Ad Set ID, Ad ID, Object Story ID, Asset Feed ID, статистика и даты.</label>
+          <label class="check"><input id="dropDangerousColumns" type="checkbox" checked /> Удалять только системные/статистические колонки (даты, delivery и метрики). ID/asset-поля очищаются, но колонки сохраняются.</label>
           <label class="check"><input id="cleanJsonCells" type="checkbox" checked /> Чистить JSON-поля: targeting, promoted_object, creative, object_story_spec, asset_feed_spec и похожие.</label>
           <label class="check"><input id="dropEmptyColumns" type="checkbox" /> Удалять полностью пустые колонки после обработки.</label>
         </div>
@@ -316,7 +316,7 @@
   </main>
 
   <script>
-    const dangerousColumnPatterns = [
+    const dropColumnPatterns = [
       /^id$/i,
       /campaign\s*id/i,
       /ad\s*set\s*id/i,
@@ -373,7 +373,7 @@
       /frequency\s*control\s*specs/i
     ];
 
-    const dangerousJsonKeysBase = new Set([
+    const removableJsonKeys = new Set([
       "id",
       "account_id",
       "campaign_id",
@@ -396,7 +396,7 @@
       "source_instagram_media_id"
     ]);
 
-    const dangerousJsonKeysStrictCreative = new Set([
+    const removableJsonKeysStrictCreative = new Set([
       "creative_id",
       "thumbnail_url",
       "image_url",
@@ -491,11 +491,11 @@
       return result;
     }
 
-    function getDangerousJsonKeys(options) {
-      const keys = new Set(dangerousJsonKeysBase);
+    function getRemovableJsonKeys(options) {
+      const keys = new Set(removableJsonKeys);
 
       if (!options.keepAdCreativeStructure) {
-        dangerousJsonKeysStrictCreative.forEach((key) => keys.add(key));
+        removableJsonKeysStrictCreative.forEach((key) => keys.add(key));
       }
 
       return keys;
@@ -510,7 +510,7 @@
         const cleaned = {};
 
         Object.entries(obj).forEach(([key, value]) => {
-          if (getDangerousJsonKeys(options).has(key)) return;
+          if (getRemovableJsonKeys(options).has(key)) return;
 
           if (Object.prototype.hasOwnProperty.call(replacements, key)) {
             cleaned[key] = replacements[key];
@@ -549,7 +549,58 @@
       return value === null || value === undefined || String(value).trim() === "";
     }
 
-    function isCreativeStructureColumn(column) {
+    
+    const clearCellPatterns = [
+      /^id$/i,
+      /campaign\s*id/i,
+      /ad\s*set\s*id/i,
+      /adset\s*id/i,
+      /ad\s*id/i,
+      /creative\s*id/i,
+      /asset\s*feed\s*id/i,
+      /object\s*story\s*id/i,
+      /effective\s*object\s*story\s*id/i,
+      /source\s*campaign\s*id/i,
+      /source\s*ad\s*set\s*id/i,
+      /source\s*adset\s*id/i,
+      /source\s*ad\s*id/i,
+      /image\s*hash/i,
+      /video\s*id/i,
+      /thumbnail/i,
+      /permalink/i
+    ];
+
+    const dropOnlyColumnPatterns = [
+      /created\s*time/i,
+      /updated\s*time/i,
+      /created\s*at/i,
+      /updated\s*at/i,
+      /delivery/i,
+      /results/i,
+      /reach/i,
+      /impressions/i,
+      /frequency/i,
+      /amount\s*spent/i,
+      /^spend$/i,
+      /cpm/i,
+      /cpc/i,
+      /ctr/i,
+      /clicks/i,
+      /link\s*clicks/i,
+      /purchases/i,
+      /conversions/i,
+      /cost\s*per/i,
+      /budget\s*remaining/i,
+      /quality\s*ranking/i,
+      /engagement\s*rate\s*ranking/i,
+      /conversion\s*rate\s*ranking/i
+    ];
+
+    function shouldClearCellByColumn(column) {
+      return matchesAnyPattern(column, clearCellPatterns);
+    }
+
+function isCreativeStructureColumn(column) {
       const normalized = normalizeName(column);
       return normalized.includes("creative") && !/creative\\s*id/i.test(normalized);
     }
@@ -560,7 +611,7 @@
     }
 
     function shouldDropColumn(column, options) {
-      if (!matchesAnyPattern(column, dangerousColumnPatterns)) return false;
+      if (!matchesAnyPattern(column, dropOnlyColumnPatterns)) return false;
 
       if (options.keepAdCreativeStructure) {
         if (isCreativeStructureColumn(column)) return false;
@@ -588,7 +639,8 @@
       let cleanedRows = rows.map((row) => {
         const cleanedRow = {};
         keptColumns.forEach((column) => {
-          cleanedRow[column] = cleanCell(row[column], column, replacements, options);
+          const cleanedValue = cleanCell(row[column], column, replacements, options);
+          cleanedRow[column] = shouldClearCellByColumn(column) ? "" : cleanedValue;
         });
         return cleanedRow;
       });
