@@ -289,7 +289,7 @@
 
         <div class="field">
           <label>Режим</label>
-          <div class="hint">Строгий режим: скрипт автоматически очищает служебные ID/медиа-ID, удаляет только системные метрики/даты, подставляет Pixel/Page/Instagram ID и ставит статусы в PAUSED.</div>
+          <div class="hint">Строгий режим: скрипт автоматически очищает только ID уровней Campaign/Ad Set/Ad, удаляет системные метрики/даты, подставляет Pixel/Page/Instagram ID и ставит статусы в PAUSED. Креативы/объявления сохраняются.</div>
         </div>
 
         <div class="actions">
@@ -339,30 +339,16 @@
       "campaign_id",
       "adset_id",
       "ad_id",
-      "asset_feed_id",
-      "object_story_id",
-      "effective_object_story_id",
       "source_campaign_id",
       "source_adset_id",
       "source_ad_id",
       "created_time",
       "updated_time",
       "effective_status",
-      "budget_remaining",
-      "issues_info",
-      "recommendations",
-      "insights",
-      "instagram_permalink_url",
-      "source_instagram_media_id"
+      "insights"
     ]);
 
-    const removableJsonKeysStrictCreative = new Set([
-      "creative_id",
-      "thumbnail_url",
-      "image_url",
-      "image_hash",
-      "video_id"
-    ]);
+    const removableJsonKeysStrictCreative = new Set([]);
 
     const els = {
       fileInput: document.getElementById("fileInput"),
@@ -399,7 +385,8 @@
     }
 
     function parseReplacements() {
-      return {};
+      const raw = els.replacementsInput.value.trim();
+      if (!raw) return {};
 
       try {
         const parsed = JSON.parse(raw);
@@ -513,9 +500,6 @@
       "ad set id",
       "adset id",
       "ad id",
-      "image hash",
-      "video id",
-      "asset feed id",
       "created time",
       "last updated time",
       "reporting starts",
@@ -539,18 +523,10 @@
       /(^|\b)ad\s*set\s*id(\b|$)/i,
       /(^|\b)adset\s*id(\b|$)/i,
       /(^|\b)ad\s*id(\b|$)/i,
-      /(^|\b)creative\s*id(\b|$)/i,
-      /(^|\b)asset\s*feed\s*id(\b|$)/i,
-      /(^|\b)object\s*story\s*id(\b|$)/i,
-      /(^|\b)effective\s*object\s*story\s*id(\b|$)/i,
       /(^|\b)source\s*campaign\s*id(\b|$)/i,
       /(^|\b)source\s*ad\s*set\s*id(\b|$)/i,
       /(^|\b)source\s*adset\s*id(\b|$)/i,
-      /(^|\b)source\s*ad\s*id(\b|$)/i,
-      /(^|\b)image\s*hash(\b|$)/i,
-      /(^|\b)video\s*id(\b|$)/i,
-      /(^|\b)thumbnail(_url|\s*url)?(\b|$)/i,
-      /(^|\b)permalink(\b|$)/i
+      /(^|\b)source\s*ad\s*id(\b|$)/i
     ];
 
     const dropOnlyColumnPatterns = [
