@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Meta Campaign Cleaner</title>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    :root {
+      --bg: #07110d;
+      --panel: #0f1c17;
+      --panel-2: #12251d;
+      --border: #28483a;
+      --text: #eafff1;
+      --muted: #9fb8a8;
+      --green: #4dff8f;
+      --green-2: #00d85a;
+      --red: #ff7b7b;
+      --yellow: #ffd36b;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 20% 10%, rgba(77, 255, 143, 0.12), transparent 28%),
+        radial-gradient(circle at 80% 0%, rgba(0, 216, 90, 0.08), transparent 25%),
+        var(--bg);
+      color: var(--text);
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    .wrap {
+      width: min(980px, calc(100vw - 28px));
+      margin: 0 auto;
+      padding: 42px 0;
+    }
+
+    .hero {
+      text-align: center;
+      margin-bottom: 26px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 12px;
+      border: 1px solid rgba(77, 255, 143, .34);
+      border-radius: 999px;
+      background: rgba(15, 28, 23, .78);
+      color: var(--green);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 16px 0 8px;
+      font-size: clamp(30px, 5vw, 54px);
+      line-height: 1.02;
+      letter-spacing: -0.045em;
+    }
+
+    .subtitle {
+      max-width: 720px;
+      margin: 0 auto;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.55;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1.05fr .95fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .card {
+      background: rgba(15, 28, 23, .92);
+      border: 1px solid rgba(89, 130, 113, .26);
+      border-radius: 20px;
+      box-shadow: 0 24px 70px rgba(0, 0, 0, .34);
+      padding: 20px;
+    }
+
+    .card h2 {
+      margin: 0 0 14px;
+      font-size: 18px;
+      letter-spacing: -0.02em;
+    }
+
+    .field { margin: 14px 0; }
+
+    label {
+      display: block;
+      margin-bottom: 7px;
+      color: #c5e1ce;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    input[type="file"], input[type="text"], textarea, select {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #0a1511;
+      color: var(--text);
+      padding: 12px;
+      font: inherit;
+      outline: none;
+    }
+
+    input[type="file"]::file-selector-button {
+      margin-right: 12px;
+      border: 0;
+      border-radius: 9px;
+      background: var(--green);
+      color: #031609;
+      padding: 8px 10px;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    textarea {
+      min-height: 132px;
+      resize: vertical;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .hint {
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .check {
+      display: flex;
+      align-items: flex-start;
+      gap: 9px;
+      margin: 10px 0;
+      color: #c5e1ce;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .check input {
+      margin-top: 2px;
+      accent-color: var(--green);
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    button {
+      border: 1px solid transparent;
+      border-radius: 13px;
+      padding: 13px 14px;
+      font: inherit;
+      font-weight: 900;
+      cursor: pointer;
+      transition: .16s ease;
+    }
+
+    .primary {
+      background: linear-gradient(150deg, var(--green) 0%, var(--green-2) 100%);
+      color: #031609;
+    }
+
+    .secondary {
+      background: #0a1511;
+      color: var(--text);
+      border-color: var(--border);
+    }
+
+    button:hover { transform: translateY(-1px); }
+    button:disabled { opacity: .55; cursor: not-allowed; transform: none; }
+
+    .log {
+      height: 286px;
+      overflow: auto;
+      border: 1px solid #22372f;
+      border-radius: 14px;
+      background: #07100d;
+      padding: 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+    }
+
+    .log .info { color: #d4e8db; }
+    .log .success { color: #9bff7d; }
+    .log .warning { color: var(--yellow); }
+    .log .error { color: var(--red); }
+
+    .pill-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 10px;
+    }
+
+    .pill {
+      padding: 5px 8px;
+      border-radius: 999px;
+      background: rgba(77, 255, 143, .08);
+      border: 1px solid rgba(77, 255, 143, .16);
+      color: #bfffd4;
+      font-size: 11px;
+    }
+
+    .footer {
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 12px;
+      text-align: center;
+    }
+
+    @media (max-width: 820px) {
+      .grid, .row, .actions { grid-template-columns: 1fr; }
+      .wrap { padding: 28px 0; }
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="hero">
+      <div class="badge">Meta Ads Import Helper</div>
+      <h1>Campaign Cleaner</h1>
+      <p class="subtitle">
+        Загрузи CSV/XLSX экспорт кампании, очисти ID, статистику, старые ассеты и замени pixel/page/Instagram ID перед импортом. Всё обрабатывается локально в браузере.
+      </p>
+    </section>
+
+    <section class="grid">
+      <div class="card">
+        <h2>Файл и настройки</h2>
+
+        <div class="field">
+          <label for="fileInput">1. Загрузи файл</label>
+          <input id="fileInput" type="file" accept=".csv,.xlsx,.xls" />
+          <div class="hint">Поддерживаются .csv, .xlsx и .xls. Для GitHub Pages сервер не нужен.</div>
+        </div>
+
+        <div class="field row">
+          <div>
+            <label for="outputFormat">2. Формат результата</label>
+            <select id="outputFormat">
+              <option value="same">Как исходный файл</option>
+              <option value="xlsx">XLSX</option>
+              <option value="csv">CSV</option>
+            </select>
+          </div>
+          <div>
+            <label for="suffixInput">Суффикс файла</label>
+            <input id="suffixInput" type="text" value="_cleaned" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="replacementsInput">3. Массовые замены ID</label>
+          <textarea id="replacementsInput" spellcheck="false" placeholder='{"old_pixel_id":"new_pixel_id","old_page_id":"new_page_id","old_instagram_id":"new_instagram_id"}'></textarea>
+          <div class="hint">Формат JSON. Можно оставить пустым. Скрипт заменит значения в обычном тексте и внутри JSON-полей.</div>
+        </div>
+
+        <div class="field">
+          <label>4. Режим чистки</label>
+          <label class="check"><input id="keepAdCreativeStructure" type="checkbox" checked /> Ad import mode: сохранить creative-структуру объявлений, чтобы Meta не блокировала строки Ad из-за missing creative fields.</label>
+          <label class="check"><input id="dropDangerousColumns" type="checkbox" checked /> Удалять опасные колонки: Campaign ID, Ad Set ID, Ad ID, Object Story ID, Asset Feed ID, статистика и даты.</label>
+          <label class="check"><input id="cleanJsonCells" type="checkbox" checked /> Чистить JSON-поля: targeting, promoted_object, creative, object_story_spec, asset_feed_spec и похожие.</label>
+          <label class="check"><input id="dropEmptyColumns" type="checkbox" /> Удалять полностью пустые колонки после обработки.</label>
+        </div>
+
+        <div class="actions">
+          <button id="cleanBtn" class="primary">Очистить и скачать</button>
+          <button id="resetBtn" class="secondary">Сбросить</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Лог обработки</h2>
+        <div id="log" class="log"></div>
+        <div class="pill-list">
+          <span class="pill">Campaign ID</span>
+          <span class="pill">Ad Set ID</span>
+          <span class="pill">Ad ID</span>
+          <span class="pill">Creative ID</span>
+          <span class="pill">Asset Feed ID</span>
+          <span class="pill">Object Story ID</span>
+          <span class="pill">Image Hash</span>
+          <span class="pill">Video ID</span>
+          <span class="pill">Stats</span>
+        </div>
+      </div>
+    </section>
+
+    <div class="footer">Файл не отправляется на сервер. Обработка идёт внутри браузера.</div>
+  </main>
+
+  <script>
+    const dangerousColumnPatterns = [
+      /^id$/i,
+      /campaign\s*id/i,
+      /ad\s*set\s*id/i,
+      /adset\s*id/i,
+      /ad\s*id/i,
+      /creative\s*id/i,
+      /asset\s*feed\s*id/i,
+      /object\s*story\s*id/i,
+      /effective\s*object\s*story\s*id/i,
+      /source\s*campaign\s*id/i,
+      /source\s*ad\s*set\s*id/i,
+      /source\s*adset\s*id/i,
+      /source\s*ad\s*id/i,
+      /image\s*hash/i,
+      /video\s*id/i,
+      /thumbnail/i,
+      /permalink/i,
+      /created\s*time/i,
+      /updated\s*time/i,
+      /created\s*at/i,
+      /updated\s*at/i,
+      /effective\s*status/i,
+      /delivery/i,
+      /results/i,
+      /reach/i,
+      /impressions/i,
+      /frequency/i,
+      /amount\s*spent/i,
+      /^spend$/i,
+      /cpm/i,
+      /cpc/i,
+      /ctr/i,
+      /clicks/i,
+      /link\s*clicks/i,
+      /purchases/i,
+      /conversions/i,
+      /cost\s*per/i,
+      /budget\s*remaining/i,
+      /quality\s*ranking/i,
+      /engagement\s*rate\s*ranking/i,
+      /conversion\s*rate\s*ranking/i
+    ];
+
+    const jsonLikeColumnPatterns = [
+      /targeting/i,
+      /promoted\s*object/i,
+      /creative/i,
+      /object\s*story\s*spec/i,
+      /asset\s*feed\s*spec/i,
+      /tracking\s*specs/i,
+      /conversion\s*specs/i,
+      /attribution\s*spec/i,
+      /degrees\s*of\s*freedom\s*spec/i,
+      /frequency\s*control\s*specs/i
+    ];
+
+    const dangerousJsonKeysBase = new Set([
+      "id",
+      "account_id",
+      "campaign_id",
+      "adset_id",
+      "ad_id",
+      "asset_feed_id",
+      "object_story_id",
+      "effective_object_story_id",
+      "source_campaign_id",
+      "source_adset_id",
+      "source_ad_id",
+      "created_time",
+      "updated_time",
+      "effective_status",
+      "budget_remaining",
+      "issues_info",
+      "recommendations",
+      "insights",
+      "instagram_permalink_url",
+      "source_instagram_media_id"
+    ]);
+
+    const dangerousJsonKeysStrictCreative = new Set([
+      "creative_id",
+      "thumbnail_url",
+      "image_url",
+      "image_hash",
+      "video_id"
+    ]);
+
+    const els = {
+      fileInput: document.getElementById("fileInput"),
+      outputFormat: document.getElementById("outputFormat"),
+      suffixInput: document.getElementById("suffixInput"),
+      replacementsInput: document.getElementById("replacementsInput"),
+      keepAdCreativeStructure: document.getElementById("keepAdCreativeStructure"),
+      dropDangerousColumns: document.getElementById("dropDangerousColumns"),
+      cleanJsonCells: document.getElementById("cleanJsonCells"),
+      dropEmptyColumns: document.getElementById("dropEmptyColumns"),
+      cleanBtn: document.getElementById("cleanBtn"),
+      resetBtn: document.getElementById("resetBtn"),
+      log: document.getElementById("log")
+    };
+
+    function log(message, type = "info") {
+      const row = document.createElement("div");
+      row.className = type;
+      row.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      els.log.appendChild(row);
+      els.log.scrollTop = els.log.scrollHeight;
+    }
+
+    function clearLog() {
+      els.log.innerHTML = "";
+    }
+
+    function normalizeName(value) {
+      return String(value ?? "").trim().toLowerCase().replace(/[_-]/g, " ");
+    }
+
+    function matchesAnyPattern(value, patterns) {
+      const normalized = normalizeName(value);
+      return patterns.some((pattern) => pattern.test(normalized));
+    }
+
+    function parseReplacements() {
+      const raw = els.replacementsInput.value.trim();
+      if (!raw) return {};
+
+      try {
+        const parsed = JSON.parse(raw);
+        const result = {};
+
+        Object.entries(parsed).forEach(([oldValue, newValue]) => {
+          if (String(oldValue).trim()) result[String(oldValue)] = String(newValue);
+        });
+
+        return result;
+      } catch (error) {
+        throw new Error("Некорректный JSON в блоке замен ID.");
+      }
+    }
+
+    function tryParseJson(value) {
+      if (typeof value !== "string") return { parsed: false, value };
+      const trimmed = value.trim();
+      if (!trimmed) return { parsed: false, value };
+
+      const looksJson =
+        (trimmed.startsWith("{") && trimmed.endsWith("}")) ||
+        (trimmed.startsWith("[") && trimmed.endsWith("]"));
+
+      if (!looksJson) return { parsed: false, value };
+
+      const candidates = [trimmed];
+      if (trimmed.includes("'") && !trimmed.includes('"')) {
+        candidates.push(trimmed.replaceAll("'", '"'));
+      }
+
+      for (const candidate of candidates) {
+        try {
+          return { parsed: true, value: JSON.parse(candidate) };
+        } catch (_) {}
+      }
+
+      return { parsed: false, value };
+    }
+
+    function replacePlainText(value, replacements) {
+      if (typeof value !== "string") return value;
+      let result = value;
+      Object.entries(replacements).forEach(([oldValue, newValue]) => {
+        result = result.split(oldValue).join(newValue);
+      });
+      return result;
+    }
+
+    function getDangerousJsonKeys(options) {
+      const keys = new Set(dangerousJsonKeysBase);
+
+      if (!options.keepAdCreativeStructure) {
+        dangerousJsonKeysStrictCreative.forEach((key) => keys.add(key));
+      }
+
+      return keys;
+    }
+
+    function deepCleanJson(obj, replacements, options) {
+      if (Array.isArray(obj)) {
+        return obj.map((item) => deepCleanJson(item, replacements, options));
+      }
+
+      if (obj && typeof obj === "object") {
+        const cleaned = {};
+
+        Object.entries(obj).forEach(([key, value]) => {
+          if (getDangerousJsonKeys(options).has(key)) return;
+
+          if (Object.prototype.hasOwnProperty.call(replacements, key)) {
+            cleaned[key] = replacements[key];
+            return;
+          }
+
+          cleaned[key] = deepCleanJson(value, replacements, options);
+        });
+
+        return cleaned;
+      }
+
+      if (typeof obj === "string") {
+        return replacements[obj] ?? obj;
+      }
+
+      return obj;
+    }
+
+    function cleanCell(value, columnName, replacements, options) {
+      const isJsonColumn = matchesAnyPattern(columnName, jsonLikeColumnPatterns);
+      const parsed = tryParseJson(value);
+
+      if (options.cleanJsonCells && (parsed.parsed || isJsonColumn)) {
+        if (parsed.parsed) {
+          const cleanedJson = deepCleanJson(parsed.value, replacements, options);
+          return JSON.stringify(cleanedJson);
+        }
+        return replacePlainText(value, replacements);
+      }
+
+      return replacePlainText(value, replacements);
+    }
+
+    function isEmptyCell(value) {
+      return value === null || value === undefined || String(value).trim() === "";
+    }
+
+    function isCreativeStructureColumn(column) {
+      const normalized = normalizeName(column);
+      return normalized.includes("creative") && !/creative\\s*id/i.test(normalized);
+    }
+
+    function isMediaIdentityColumn(column) {
+      const normalized = normalizeName(column);
+      return /image\\s*hash/i.test(normalized) || /video\\s*id/i.test(normalized) || /thumbnail/i.test(normalized);
+    }
+
+    function shouldDropColumn(column, options) {
+      if (!matchesAnyPattern(column, dangerousColumnPatterns)) return false;
+
+      if (options.keepAdCreativeStructure) {
+        if (isCreativeStructureColumn(column)) return false;
+        if (isMediaIdentityColumn(column)) return false;
+      }
+
+      return true;
+    }
+
+    function cleanSheetJsonRows(rows, replacements, options) {
+      if (!rows.length) return { rows, droppedColumns: [] };
+
+      const originalColumns = Object.keys(rows[0]);
+      let keptColumns = originalColumns.slice();
+      const droppedColumns = [];
+
+      if (options.dropDangerousColumns) {
+        keptColumns = keptColumns.filter((column) => {
+          const shouldDrop = shouldDropColumn(column, options);
+          if (shouldDrop) droppedColumns.push(column);
+          return !shouldDrop;
+        });
+      }
+
+      let cleanedRows = rows.map((row) => {
+        const cleanedRow = {};
+        keptColumns.forEach((column) => {
+          cleanedRow[column] = cleanCell(row[column], column, replacements, options);
+        });
+        return cleanedRow;
+      });
+
+      if (options.dropEmptyColumns && cleanedRows.length) {
+        keptColumns = keptColumns.filter((column) => {
+          const isEmpty = cleanedRows.every((row) => isEmptyCell(row[column]));
+          if (isEmpty) droppedColumns.push(column);
+          return !isEmpty;
+        });
+
+        cleanedRows = cleanedRows.map((row) => {
+          const cleanedRow = {};
+          keptColumns.forEach((column) => cleanedRow[column] = row[column]);
+          return cleanedRow;
+        });
+      }
+
+      return { rows: cleanedRows, droppedColumns };
+    }
+
+    function getOutputExtension(inputFileName) {
+      const selected = els.outputFormat.value;
+      const inputExt = inputFileName.toLowerCase().endsWith(".csv") ? "csv" : "xlsx";
+      return selected === "same" ? inputExt : selected;
+    }
+
+    function buildOutputName(inputFileName) {
+      const suffix = els.suffixInput.value || "_cleaned";
+      const extension = getOutputExtension(inputFileName);
+      const base = inputFileName.replace(/\.[^.]+$/, "");
+      return `${base}${suffix}.${extension}`;
+    }
+
+    function downloadWorkbook(workbook, fileName) {
+      XLSX.writeFile(workbook, fileName, { compression: true });
+    }
+
+    function downloadCsvFromFirstSheet(workbook, fileName) {
+      const firstSheetName = workbook.SheetNames[0];
+      const csv = XLSX.utils.sheet_to_csv(workbook.Sheets[firstSheetName]);
+      const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    async function readFileAsArrayBuffer(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(reader.error);
+        reader.readAsArrayBuffer(file);
+      });
+    }
+
+    async function processFile() {
+      clearLog();
+
+      const file = els.fileInput.files?.[0];
+      if (!file) {
+        alert("Сначала загрузи CSV/XLSX файл.");
+        return;
+      }
+
+      els.cleanBtn.disabled = true;
+      els.cleanBtn.textContent = "Обрабатываю...";
+
+      try {
+        const replacements = parseReplacements();
+        const options = {
+          keepAdCreativeStructure: els.keepAdCreativeStructure.checked,
+          dropDangerousColumns: els.dropDangerousColumns.checked,
+          cleanJsonCells: els.cleanJsonCells.checked,
+          dropEmptyColumns: els.dropEmptyColumns.checked
+        };
+
+        log(`Файл: ${file.name}`, "info");
+        log(`Размер: ${(file.size / 1024).toFixed(1)} KB`, "info");
+        log(`Замен ID: ${Object.keys(replacements).length}`, Object.keys(replacements).length ? "success" : "info");
+
+        const buffer = await readFileAsArrayBuffer(file);
+        const workbook = XLSX.read(buffer, { type: "array", cellDates: false, raw: false });
+        const outputWorkbook = XLSX.utils.book_new();
+
+        for (const sheetName of workbook.SheetNames) {
+          const sheet = workbook.Sheets[sheetName];
+          const rows = XLSX.utils.sheet_to_json(sheet, { defval: "", raw: false });
+
+          log(`Лист "${sheetName}": строк ${rows.length}`, "info");
+
+          if (!rows.length) {
+            const emptySheet = XLSX.utils.aoa_to_sheet([]);
+            XLSX.utils.book_append_sheet(outputWorkbook, emptySheet, sheetName.slice(0, 31));
+            log(`Лист "${sheetName}" пустой, перенесён без изменений.`, "warning");
+            continue;
+          }
+
+          const { rows: cleanedRows, droppedColumns } = cleanSheetJsonRows(rows, replacements, options);
+          const cleanedSheet = XLSX.utils.json_to_sheet(cleanedRows);
+          XLSX.utils.book_append_sheet(outputWorkbook, cleanedSheet, sheetName.slice(0, 31));
+
+          if (droppedColumns.length) {
+            log(`Удалено колонок: ${droppedColumns.length}`, "success");
+            droppedColumns.forEach((column) => log(`- ${column}`, "warning"));
+          } else {
+            log(`Опасные колонки не найдены.`, "info");
+          }
+        }
+
+        const outputName = buildOutputName(file.name);
+        const outputExt = getOutputExtension(file.name);
+
+        if (outputExt === "csv") {
+          downloadCsvFromFirstSheet(outputWorkbook, outputName);
+        } else {
+          downloadWorkbook(outputWorkbook, outputName);
+        }
+
+        log(`Готово. Скачан файл: ${outputName}`, "success");
+      } catch (error) {
+        console.error(error);
+        log(error.message || String(error), "error");
+        alert(error.message || String(error));
+      } finally {
+        els.cleanBtn.disabled = false;
+        els.cleanBtn.textContent = "Очистить и скачать";
+      }
+    }
+
+    function resetForm() {
+      els.fileInput.value = "";
+      els.outputFormat.value = "same";
+      els.suffixInput.value = "_cleaned";
+      els.replacementsInput.value = "";
+      els.keepAdCreativeStructure.checked = true;
+      els.dropDangerousColumns.checked = true;
+      els.cleanJsonCells.checked = true;
+      els.dropEmptyColumns.checked = false;
+      clearLog();
+      log("Готов к работе.", "success");
+    }
+
+    els.cleanBtn.addEventListener("click", processFile);
+    els.resetBtn.addEventListener("click", resetForm);
+
+    log("Готов к работе.", "success");
+  </script>
+</body>
+</html>
