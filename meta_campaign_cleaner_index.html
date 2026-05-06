@@ -255,28 +255,13 @@
         <h2>Файл и настройки</h2>
 
         <div class="field">
-          <label for="fileInput">1. Загрузи файл</label>
+          <label for="fileInput">Загрузи файл экспорта</label>
           <input id="fileInput" type="file" accept=".csv,.xlsx,.xls" />
           <div class="hint">Поддерживаются .csv, .xlsx и .xls. Для GitHub Pages сервер не нужен.</div>
         </div>
 
-        <div class="field row">
-          <div>
-            <label for="outputFormat">2. Формат результата</label>
-            <select id="outputFormat">
-              <option value="same">Как исходный файл</option>
-              <option value="xlsx">XLSX</option>
-              <option value="csv">CSV</option>
-            </select>
-          </div>
-          <div>
-            <label for="suffixInput">Суффикс файла</label>
-            <input id="suffixInput" type="text" value="_cleaned" />
-          </div>
-        </div>
-
         <div class="field">
-          <label for="replacementsInput">3. Массовые замены ID</label>
+          <label for="replacementsInput">Параметры замены ID</label>
           <textarea id="replacementsInput" spellcheck="false" placeholder='{"old_pixel_id":"new_pixel_id","old_page_id":"new_page_id","old_instagram_id":"new_instagram_id"}'></textarea>
           <div class="hint">Формат JSON. Можно оставить пустым. Скрипт заменит значения в обычном тексте и внутри JSON-полей.</div>
         </div>
@@ -303,16 +288,13 @@
         </div>
 
         <div class="field">
-          <label>4. Режим чистки</label>
-          <label class="check"><input id="keepAdCreativeStructure" type="checkbox" checked /> Ad import mode: сохранить creative-структуру объявлений, чтобы Meta не блокировала строки Ad из-за missing creative fields.</label>
-          <label class="check"><input id="dropDangerousColumns" type="checkbox" checked /> Удалять только системные/статистические колонки (даты, delivery и метрики). очищаются только внутренние ID объявлений/креативов и media hash/video id; привязки Pixel/Page/Instagram не трогаются.</label>
-          <label class="check"><input id="cleanJsonCells" type="checkbox" checked /> Чистить JSON-поля: targeting, promoted_object, creative, object_story_spec, asset_feed_spec и похожие.</label>
-          <label class="check"><input id="dropEmptyColumns" type="checkbox" /> Удалять полностью пустые колонки после обработки.</label>
+          <label>Режим</label>
+          <div class="hint">Строгий режим: скрипт автоматически очищает служебные ID/медиа-ID, удаляет только системные метрики/даты, подставляет Pixel/Page/Instagram ID и ставит статусы в PAUSED.</div>
         </div>
 
         <div class="actions">
           <button id="cleanBtn" class="primary">Очистить и скачать</button>
-          <button id="resetBtn" class="secondary">Сбросить</button>
+          
         </div>
       </div>
 
@@ -384,20 +366,15 @@
 
     const els = {
       fileInput: document.getElementById("fileInput"),
-      outputFormat: document.getElementById("outputFormat"),
-      suffixInput: document.getElementById("suffixInput"),
+      
       replacementsInput: document.getElementById("replacementsInput"),
       pixelIdInput: document.getElementById("pixelIdInput"),
       pageIdInput: document.getElementById("pageIdInput"),
       igIdInput: document.getElementById("igIdInput"),
       forceStatusInput: document.getElementById("forceStatusInput"),
-      keepAdCreativeStructure: document.getElementById("keepAdCreativeStructure"),
-      dropDangerousColumns: document.getElementById("dropDangerousColumns"),
-      cleanJsonCells: document.getElementById("cleanJsonCells"),
-      dropEmptyColumns: document.getElementById("dropEmptyColumns"),
+      
       cleanBtn: document.getElementById("cleanBtn"),
-      resetBtn: document.getElementById("resetBtn"),
-      log: document.getElementById("log")
+            log: document.getElementById("log")
     };
 
     function log(message, type = "info") {
@@ -422,8 +399,7 @@
     }
 
     function parseReplacements() {
-      const raw = els.replacementsInput.value.trim();
-      if (!raw) return {};
+      return {};
 
       try {
         const parsed = JSON.parse(raw);
@@ -681,16 +657,12 @@ function isCreativeStructureColumn(column) {
     }
 
     function getOutputExtension(inputFileName) {
-      const selected = els.outputFormat.value;
-      const inputExt = inputFileName.toLowerCase().endsWith(".csv") ? "csv" : "xlsx";
-      return selected === "same" ? inputExt : selected;
+      return "csv";
     }
 
     function buildOutputName(inputFileName) {
-      const suffix = els.suffixInput.value || "_cleaned";
-      const extension = getOutputExtension(inputFileName);
       const base = inputFileName.replace(/\.[^.]+$/, "");
-      return `${base}${suffix}.${extension}`;
+      return `${base}_cleaned.csv`;
     }
 
     function downloadWorkbook(workbook, fileName) {
@@ -735,10 +707,10 @@ function isCreativeStructureColumn(column) {
       try {
         const replacements = parseReplacements();
         const options = {
-          keepAdCreativeStructure: els.keepAdCreativeStructure.checked,
-          dropDangerousColumns: els.dropDangerousColumns.checked,
-          cleanJsonCells: els.cleanJsonCells.checked,
-          dropEmptyColumns: els.dropEmptyColumns.checked
+          keepAdCreativeStructure: true,
+          dropDangerousColumns: true,
+          cleanJsonCells: true,
+          dropEmptyColumns: false
         };
 
         log(`Файл: ${file.name}`, "info");
@@ -794,25 +766,7 @@ function isCreativeStructureColumn(column) {
       }
     }
 
-    function resetForm() {
-      els.fileInput.value = "";
-      els.outputFormat.value = "same";
-      els.suffixInput.value = "_cleaned";
-      els.replacementsInput.value = "";
-      els.pixelIdInput.value = "";
-      els.pageIdInput.value = "";
-      els.igIdInput.value = "";
-      els.forceStatusInput.value = "PAUSED";
-      els.keepAdCreativeStructure.checked = true;
-      els.dropDangerousColumns.checked = true;
-      els.cleanJsonCells.checked = true;
-      els.dropEmptyColumns.checked = false;
-      clearLog();
-      log("Готов к работе.", "success");
-    }
-
     els.cleanBtn.addEventListener("click", processFile);
-    els.resetBtn.addEventListener("click", resetForm);
 
     log("Готов к работе.", "success");
   </script>
