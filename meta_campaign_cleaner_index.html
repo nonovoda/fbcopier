@@ -284,7 +284,7 @@
         <div class="field">
           <label>4. Режим чистки</label>
           <label class="check"><input id="keepAdCreativeStructure" type="checkbox" checked /> Ad import mode: сохранить creative-структуру объявлений, чтобы Meta не блокировала строки Ad из-за missing creative fields.</label>
-          <label class="check"><input id="dropDangerousColumns" type="checkbox" checked /> Удалять только системные/статистические колонки (даты, delivery и метрики). ID/asset-поля очищаются, но колонки сохраняются.</label>
+          <label class="check"><input id="dropDangerousColumns" type="checkbox" checked /> Удалять только системные/статистические колонки (даты, delivery и метрики). очищаются только внутренние ID объявлений/креативов и media hash/video id; привязки Pixel/Page/Instagram не трогаются.</label>
           <label class="check"><input id="cleanJsonCells" type="checkbox" checked /> Чистить JSON-поля: targeting, promoted_object, creative, object_story_spec, asset_feed_spec и похожие.</label>
           <label class="check"><input id="dropEmptyColumns" type="checkbox" /> Удалять полностью пустые колонки после обработки.</label>
         </div>
@@ -316,50 +316,7 @@
   </main>
 
   <script>
-    const dropColumnPatterns = [
-      /^id$/i,
-      /campaign\s*id/i,
-      /ad\s*set\s*id/i,
-      /adset\s*id/i,
-      /ad\s*id/i,
-      /creative\s*id/i,
-      /asset\s*feed\s*id/i,
-      /object\s*story\s*id/i,
-      /effective\s*object\s*story\s*id/i,
-      /source\s*campaign\s*id/i,
-      /source\s*ad\s*set\s*id/i,
-      /source\s*adset\s*id/i,
-      /source\s*ad\s*id/i,
-      /image\s*hash/i,
-      /video\s*id/i,
-      /thumbnail/i,
-      /permalink/i,
-      /created\s*time/i,
-      /updated\s*time/i,
-      /created\s*at/i,
-      /updated\s*at/i,
-      /effective\s*status/i,
-      /delivery/i,
-      /results/i,
-      /reach/i,
-      /impressions/i,
-      /frequency/i,
-      /amount\s*spent/i,
-      /^spend$/i,
-      /cpm/i,
-      /cpc/i,
-      /ctr/i,
-      /clicks/i,
-      /link\s*clicks/i,
-      /purchases/i,
-      /conversions/i,
-      /cost\s*per/i,
-      /budget\s*remaining/i,
-      /quality\s*ranking/i,
-      /engagement\s*rate\s*ranking/i,
-      /conversion\s*rate\s*ranking/i
-    ];
-
+    
     const jsonLikeColumnPatterns = [
       /targeting/i,
       /promoted\s*object/i,
@@ -551,23 +508,22 @@
 
     
     const clearCellPatterns = [
-      /^id$/i,
-      /campaign\s*id/i,
-      /ad\s*set\s*id/i,
-      /adset\s*id/i,
-      /ad\s*id/i,
-      /creative\s*id/i,
-      /asset\s*feed\s*id/i,
-      /object\s*story\s*id/i,
-      /effective\s*object\s*story\s*id/i,
-      /source\s*campaign\s*id/i,
-      /source\s*ad\s*set\s*id/i,
-      /source\s*adset\s*id/i,
-      /source\s*ad\s*id/i,
-      /image\s*hash/i,
-      /video\s*id/i,
-      /thumbnail/i,
-      /permalink/i
+      /(^|\b)campaign\s*id(\b|$)/i,
+      /(^|\b)ad\s*set\s*id(\b|$)/i,
+      /(^|\b)adset\s*id(\b|$)/i,
+      /(^|\b)ad\s*id(\b|$)/i,
+      /(^|\b)creative\s*id(\b|$)/i,
+      /(^|\b)asset\s*feed\s*id(\b|$)/i,
+      /(^|\b)object\s*story\s*id(\b|$)/i,
+      /(^|\b)effective\s*object\s*story\s*id(\b|$)/i,
+      /(^|\b)source\s*campaign\s*id(\b|$)/i,
+      /(^|\b)source\s*ad\s*set\s*id(\b|$)/i,
+      /(^|\b)source\s*adset\s*id(\b|$)/i,
+      /(^|\b)source\s*ad\s*id(\b|$)/i,
+      /(^|\b)image\s*hash(\b|$)/i,
+      /(^|\b)video\s*id(\b|$)/i,
+      /(^|\b)thumbnail(_url|\s*url)?(\b|$)/i,
+      /(^|\b)permalink(\b|$)/i
     ];
 
     const dropOnlyColumnPatterns = [
@@ -602,12 +558,12 @@
 
 function isCreativeStructureColumn(column) {
       const normalized = normalizeName(column);
-      return normalized.includes("creative") && !/creative\\s*id/i.test(normalized);
+      return normalized.includes("creative") && !/creative\s*id/i.test(normalized);
     }
 
     function isMediaIdentityColumn(column) {
       const normalized = normalizeName(column);
-      return /image\\s*hash/i.test(normalized) || /video\\s*id/i.test(normalized) || /thumbnail/i.test(normalized);
+      return /image\s*hash/i.test(normalized) || /video\s*id/i.test(normalized) || /thumbnail/i.test(normalized);
     }
 
     function shouldDropColumn(column, options) {
