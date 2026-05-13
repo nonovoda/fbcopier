@@ -78,9 +78,9 @@
   ];
 
   const els = {
-    fileInput: document.getElementById('fileInput'),
-    cleanBtn: document.getElementById('cleanBtn'),
-    log: document.getElementById('log')
+    fileInput: null,
+    cleanBtn: null,
+    log: null
   };
 
   const normalizeName = (value) => String(value ?? '').trim().toLowerCase().replace(/[_-]/g, ' ');
@@ -88,6 +88,7 @@
   const normalizeColumnKey = (column) => normalizeName(column);
 
   function log(message, type = 'info') {
+    if (!els.log) return;
     const row = document.createElement('div');
     row.className = type;
     row.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
@@ -95,7 +96,10 @@
     els.log.scrollTop = els.log.scrollHeight;
   }
 
-  function clearLog() { els.log.innerHTML = ''; }
+  function clearLog() {
+    if (!els.log) return;
+    els.log.innerHTML = '';
+  }
 
   function tryParseJson(value) {
     if (typeof value !== 'string') return { parsed: false, value };
@@ -254,6 +258,23 @@
     }
   }
 
-  els.cleanBtn.addEventListener('click', processFile);
-  log('Готов к работе.', 'success');
+  function init() {
+    els.fileInput = document.getElementById('fileInput');
+    els.cleanBtn = document.getElementById('cleanBtn');
+    els.log = document.getElementById('log');
+
+    if (!els.fileInput || !els.cleanBtn || !els.log) {
+      console.error('Meta Campaign Cleaner: не найдены обязательные DOM-элементы.');
+      return;
+    }
+
+    els.cleanBtn.addEventListener('click', processFile);
+    log('Готов к работе.', 'success');
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
 })();
