@@ -263,18 +263,25 @@
     els.cleanBtn = document.getElementById('cleanBtn');
     els.log = document.getElementById('log');
 
-    if (!els.fileInput || !els.cleanBtn || !els.log) {
-      console.error('Meta Campaign Cleaner: не найдены обязательные DOM-элементы.');
-      return;
-    }
+    if (!els.fileInput || !els.cleanBtn || !els.log) return false;
 
     els.cleanBtn.addEventListener('click', processFile);
     log('Готов к работе.', 'success');
+    return true;
+  }
+
+  function initWithRetry(attempt = 0) {
+    if (init()) return;
+    if (attempt >= 30) {
+      console.warn('Meta Campaign Cleaner: интерфейс не найден. Проверьте, что открыт index.html с нужной разметкой.');
+      return;
+    }
+    setTimeout(() => initWithRetry(attempt + 1), 100);
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded', () => initWithRetry());
   } else {
-    init();
+    initWithRetry();
   }
 })();
