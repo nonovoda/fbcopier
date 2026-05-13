@@ -255,43 +255,46 @@
         <h2>Файл и настройки</h2>
 
         <div class="field">
-          <label for="fileInput">1. Загрузи файл</label>
+          <label for="fileInput">Загрузи файл экспорта</label>
           <input id="fileInput" type="file" accept=".csv,.xlsx,.xls" />
           <div class="hint">Поддерживаются .csv, .xlsx и .xls. Для GitHub Pages сервер не нужен.</div>
         </div>
 
-        <div class="field row">
-          <div>
-            <label for="outputFormat">2. Формат результата</label>
-            <select id="outputFormat">
-              <option value="same">Как исходный файл</option>
-              <option value="xlsx">XLSX</option>
-              <option value="csv">CSV</option>
-            </select>
-          </div>
-          <div>
-            <label for="suffixInput">Суффикс файла</label>
-            <input id="suffixInput" type="text" value="_cleaned" />
-          </div>
-        </div>
-
         <div class="field">
-          <label for="replacementsInput">3. Массовые замены ID</label>
+          <label for="replacementsInput">Параметры замены ID</label>
           <textarea id="replacementsInput" spellcheck="false" placeholder='{"old_pixel_id":"new_pixel_id","old_page_id":"new_page_id","old_instagram_id":"new_instagram_id"}'></textarea>
           <div class="hint">Формат JSON. Можно оставить пустым. Скрипт заменит значения в обычном тексте и внутри JSON-полей.</div>
         </div>
 
+        <div class="field row">
+          <div>
+            <label for="pixelIdInput">NEW_PIXEL_ID</label>
+            <input id="pixelIdInput" type="text" placeholder="1234567890" />
+          </div>
+          <div>
+            <label for="pageIdInput">NEW_PAGE_ID</label>
+            <input id="pageIdInput" type="text" placeholder="1234567890" />
+          </div>
+        </div>
+        <div class="field row">
+          <div>
+            <label for="igIdInput">NEW_IG_ID</label>
+            <input id="igIdInput" type="text" placeholder="1784..." />
+          </div>
+          <div>
+            <label for="forceStatusInput">Статус после импорта</label>
+            <input id="forceStatusInput" type="text" value="PAUSED" />
+          </div>
+        </div>
+
         <div class="field">
-          <label>4. Режим чистки</label>
-          <label class="check"><input id="keepAdCreativeStructure" type="checkbox" checked /> Ad import mode: сохранить creative-структуру объявлений, чтобы Meta не блокировала строки Ad из-за missing creative fields.</label>
-          <label class="check"><input id="dropDangerousColumns" type="checkbox" checked /> Удалять опасные колонки: Campaign ID, Ad Set ID, Ad ID, Object Story ID, Asset Feed ID, статистика и даты.</label>
-          <label class="check"><input id="cleanJsonCells" type="checkbox" checked /> Чистить JSON-поля: targeting, promoted_object, creative, object_story_spec, asset_feed_spec и похожие.</label>
-          <label class="check"><input id="dropEmptyColumns" type="checkbox" /> Удалять полностью пустые колонки после обработки.</label>
+          <label>Режим</label>
+          <div class="hint">Строгий режим: скрипт автоматически очищает только ID уровней Campaign/Ad Set/Ad, удаляет системные метрики/даты, подставляет Pixel/Page/Instagram ID и ставит статусы в PAUSED. Креативы/объявления сохраняются.</div>
         </div>
 
         <div class="actions">
           <button id="cleanBtn" class="primary">Очистить и скачать</button>
-          <button id="resetBtn" class="secondary">Сбросить</button>
+          
         </div>
       </div>
 
@@ -316,50 +319,7 @@
   </main>
 
   <script>
-    const dangerousColumnPatterns = [
-      /^id$/i,
-      /campaign\s*id/i,
-      /ad\s*set\s*id/i,
-      /adset\s*id/i,
-      /ad\s*id/i,
-      /creative\s*id/i,
-      /asset\s*feed\s*id/i,
-      /object\s*story\s*id/i,
-      /effective\s*object\s*story\s*id/i,
-      /source\s*campaign\s*id/i,
-      /source\s*ad\s*set\s*id/i,
-      /source\s*adset\s*id/i,
-      /source\s*ad\s*id/i,
-      /image\s*hash/i,
-      /video\s*id/i,
-      /thumbnail/i,
-      /permalink/i,
-      /created\s*time/i,
-      /updated\s*time/i,
-      /created\s*at/i,
-      /updated\s*at/i,
-      /effective\s*status/i,
-      /delivery/i,
-      /results/i,
-      /reach/i,
-      /impressions/i,
-      /frequency/i,
-      /amount\s*spent/i,
-      /^spend$/i,
-      /cpm/i,
-      /cpc/i,
-      /ctr/i,
-      /clicks/i,
-      /link\s*clicks/i,
-      /purchases/i,
-      /conversions/i,
-      /cost\s*per/i,
-      /budget\s*remaining/i,
-      /quality\s*ranking/i,
-      /engagement\s*rate\s*ranking/i,
-      /conversion\s*rate\s*ranking/i
-    ];
-
+    
     const jsonLikeColumnPatterns = [
       /targeting/i,
       /promoted\s*object/i,
@@ -373,49 +333,34 @@
       /frequency\s*control\s*specs/i
     ];
 
-    const dangerousJsonKeysBase = new Set([
+    const removableJsonKeys = new Set([
       "id",
       "account_id",
       "campaign_id",
       "adset_id",
       "ad_id",
-      "asset_feed_id",
-      "object_story_id",
-      "effective_object_story_id",
       "source_campaign_id",
       "source_adset_id",
       "source_ad_id",
       "created_time",
       "updated_time",
       "effective_status",
-      "budget_remaining",
-      "issues_info",
-      "recommendations",
-      "insights",
-      "instagram_permalink_url",
-      "source_instagram_media_id"
+      "insights"
     ]);
 
-    const dangerousJsonKeysStrictCreative = new Set([
-      "creative_id",
-      "thumbnail_url",
-      "image_url",
-      "image_hash",
-      "video_id"
-    ]);
+    const removableJsonKeysStrictCreative = new Set([]);
 
     const els = {
       fileInput: document.getElementById("fileInput"),
-      outputFormat: document.getElementById("outputFormat"),
-      suffixInput: document.getElementById("suffixInput"),
+      
       replacementsInput: document.getElementById("replacementsInput"),
-      keepAdCreativeStructure: document.getElementById("keepAdCreativeStructure"),
-      dropDangerousColumns: document.getElementById("dropDangerousColumns"),
-      cleanJsonCells: document.getElementById("cleanJsonCells"),
-      dropEmptyColumns: document.getElementById("dropEmptyColumns"),
+      pixelIdInput: document.getElementById("pixelIdInput"),
+      pageIdInput: document.getElementById("pageIdInput"),
+      igIdInput: document.getElementById("igIdInput"),
+      forceStatusInput: document.getElementById("forceStatusInput"),
+      
       cleanBtn: document.getElementById("cleanBtn"),
-      resetBtn: document.getElementById("resetBtn"),
-      log: document.getElementById("log")
+            log: document.getElementById("log")
     };
 
     function log(message, type = "info") {
@@ -491,11 +436,11 @@
       return result;
     }
 
-    function getDangerousJsonKeys(options) {
-      const keys = new Set(dangerousJsonKeysBase);
+    function getRemovableJsonKeys(options) {
+      const keys = new Set(removableJsonKeys);
 
       if (!options.keepAdCreativeStructure) {
-        dangerousJsonKeysStrictCreative.forEach((key) => keys.add(key));
+        removableJsonKeysStrictCreative.forEach((key) => keys.add(key));
       }
 
       return keys;
@@ -510,7 +455,7 @@
         const cleaned = {};
 
         Object.entries(obj).forEach(([key, value]) => {
-          if (getDangerousJsonKeys(options).has(key)) return;
+          if (getRemovableJsonKeys(options).has(key)) return;
 
           if (Object.prototype.hasOwnProperty.call(replacements, key)) {
             cleaned[key] = replacements[key];
@@ -549,18 +494,83 @@
       return value === null || value === undefined || String(value).trim() === "";
     }
 
-    function isCreativeStructureColumn(column) {
+    
+    const clearExactColumns = new Set([
+      "campaign id",
+      "ad set id",
+      "adset id",
+      "ad id",
+      "created time",
+      "last updated time",
+      "reporting starts",
+      "reporting ends"
+    ]);
+
+    const replaceValueColumns = {
+      "pixel id": () => els.pixelIdInput.value.trim(),
+      "facebook page id": () => els.pageIdInput.value.trim(),
+      "instagram id": () => els.igIdInput.value.trim()
+    };
+
+    const statusColumns = new Set(["campaign status", "ad set status", "ad status"]);
+
+    function normalizeColumnKey(column) {
+      return normalizeName(column);
+    }
+
+    const clearCellPatterns = [
+      /(^|\b)campaign\s*id(\b|$)/i,
+      /(^|\b)ad\s*set\s*id(\b|$)/i,
+      /(^|\b)adset\s*id(\b|$)/i,
+      /(^|\b)ad\s*id(\b|$)/i,
+      /(^|\b)source\s*campaign\s*id(\b|$)/i,
+      /(^|\b)source\s*ad\s*set\s*id(\b|$)/i,
+      /(^|\b)source\s*adset\s*id(\b|$)/i,
+      /(^|\b)source\s*ad\s*id(\b|$)/i
+    ];
+
+    const dropOnlyColumnPatterns = [
+      /created\s*time/i,
+      /updated\s*time/i,
+      /created\s*at/i,
+      /updated\s*at/i,
+      /delivery/i,
+      /results/i,
+      /reach/i,
+      /impressions/i,
+      /frequency/i,
+      /amount\s*spent/i,
+      /^spend$/i,
+      /cpm/i,
+      /cpc/i,
+      /ctr/i,
+      /clicks/i,
+      /link\s*clicks/i,
+      /purchases/i,
+      /conversions/i,
+      /cost\s*per/i,
+      /budget\s*remaining/i,
+      /quality\s*ranking/i,
+      /engagement\s*rate\s*ranking/i,
+      /conversion\s*rate\s*ranking/i
+    ];
+
+    function shouldClearCellByColumn(column) {
+      return matchesAnyPattern(column, clearCellPatterns);
+    }
+
+function isCreativeStructureColumn(column) {
       const normalized = normalizeName(column);
-      return normalized.includes("creative") && !/creative\\s*id/i.test(normalized);
+      return normalized.includes("creative") && !/creative\s*id/i.test(normalized);
     }
 
     function isMediaIdentityColumn(column) {
       const normalized = normalizeName(column);
-      return /image\\s*hash/i.test(normalized) || /video\\s*id/i.test(normalized) || /thumbnail/i.test(normalized);
+      return /image\s*hash/i.test(normalized) || /video\s*id/i.test(normalized) || /thumbnail/i.test(normalized);
     }
 
     function shouldDropColumn(column, options) {
-      if (!matchesAnyPattern(column, dangerousColumnPatterns)) return false;
+      if (!matchesAnyPattern(column, dropOnlyColumnPatterns)) return false;
 
       if (options.keepAdCreativeStructure) {
         if (isCreativeStructureColumn(column)) return false;
@@ -588,7 +598,19 @@
       let cleanedRows = rows.map((row) => {
         const cleanedRow = {};
         keptColumns.forEach((column) => {
-          cleanedRow[column] = cleanCell(row[column], column, replacements, options);
+          const normalizedColumn = normalizeColumnKey(column);
+          const cleanedValue = cleanCell(row[column], column, replacements, options);
+
+          if (clearExactColumns.has(normalizedColumn) || shouldClearCellByColumn(column)) {
+            cleanedRow[column] = "";
+          } else if (statusColumns.has(normalizedColumn)) {
+            cleanedRow[column] = els.forceStatusInput.value.trim() || "PAUSED";
+          } else if (replaceValueColumns[normalizedColumn]) {
+            const replacement = replaceValueColumns[normalizedColumn]();
+            cleanedRow[column] = replacement || row[column];
+          } else {
+            cleanedRow[column] = cleanedValue;
+          }
         });
         return cleanedRow;
       });
@@ -611,16 +633,12 @@
     }
 
     function getOutputExtension(inputFileName) {
-      const selected = els.outputFormat.value;
-      const inputExt = inputFileName.toLowerCase().endsWith(".csv") ? "csv" : "xlsx";
-      return selected === "same" ? inputExt : selected;
+      return "csv";
     }
 
     function buildOutputName(inputFileName) {
-      const suffix = els.suffixInput.value || "_cleaned";
-      const extension = getOutputExtension(inputFileName);
       const base = inputFileName.replace(/\.[^.]+$/, "");
-      return `${base}${suffix}.${extension}`;
+      return `${base}_cleaned.csv`;
     }
 
     function downloadWorkbook(workbook, fileName) {
@@ -665,10 +683,10 @@
       try {
         const replacements = parseReplacements();
         const options = {
-          keepAdCreativeStructure: els.keepAdCreativeStructure.checked,
-          dropDangerousColumns: els.dropDangerousColumns.checked,
-          cleanJsonCells: els.cleanJsonCells.checked,
-          dropEmptyColumns: els.dropEmptyColumns.checked
+          keepAdCreativeStructure: true,
+          dropDangerousColumns: true,
+          cleanJsonCells: true,
+          dropEmptyColumns: false
         };
 
         log(`Файл: ${file.name}`, "info");
@@ -724,21 +742,7 @@
       }
     }
 
-    function resetForm() {
-      els.fileInput.value = "";
-      els.outputFormat.value = "same";
-      els.suffixInput.value = "_cleaned";
-      els.replacementsInput.value = "";
-      els.keepAdCreativeStructure.checked = true;
-      els.dropDangerousColumns.checked = true;
-      els.cleanJsonCells.checked = true;
-      els.dropEmptyColumns.checked = false;
-      clearLog();
-      log("Готов к работе.", "success");
-    }
-
     els.cleanBtn.addEventListener("click", processFile);
-    els.resetBtn.addEventListener("click", resetForm);
 
     log("Готов к работе.", "success");
   </script>
