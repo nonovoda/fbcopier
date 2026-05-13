@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Meta Campaign Cleaner</title>
+  <link rel="stylesheet" href="./styles.css" />
+  <link rel="stylesheet" href="./typography.css" />
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--fbtool-deep-bg);
+      color: var(--fbtool-text);
+      font-family: var(--fbtool-font);
+      display: grid;
+      place-items: center;
+      padding: 16px;
+    }
+
+    .tool {
+      width: var(--fbtool-width-medium);
+      background: var(--fbtool-panel-bg);
+      border: 1px solid var(--fbtool-border);
+      border-radius: var(--fbtool-radius-modal);
+      box-shadow: var(--fbtool-shadow-modal);
+      padding: 14px;
+    }
+
+    .tool h1 {
+      margin: 0 0 12px;
+      color: var(--fbtool-accent);
+      font-size: 26px;
+      line-height: 1.1;
+    }
+
+    .tool label { display: block; margin-bottom: 6px; color: var(--fbtool-label); font-size: var(--fbtool-label-size); }
+    .tool input, .tool button { width: 100%; border-radius: var(--fbtool-radius-control); border: 1px solid var(--fbtool-border-input); background: var(--fbtool-control-bg); color: var(--fbtool-text); padding: 10px; font: inherit; }
+    .tool button { cursor: pointer; font-weight: 700; margin-top: 10px; }
+    .tool button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .log {
+      margin-top: 12px;
+      height: 220px;
+      overflow: auto;
+      border: 1px solid var(--fbtool-border-soft);
+      border-radius: var(--fbtool-radius-log);
+      background: #07100d;
+      padding: 10px;
+      font-family: var(--fbtool-font-mono);
+      font-size: var(--fbtool-log-size);
+      white-space: pre-wrap;
+    }
+
+    .info { color: #d4e8db; }
+    .success { color: var(--fbtool-success); }
+    .warning { color: var(--fbtool-warning); }
+    .error { color: var(--fbtool-error); }
+
+    .note { margin-top: 10px; color: var(--fbtool-muted); font-size: var(--fbtool-note-size); }
+  </style>
+</head>
+<body>
+  <main class="tool">
+    <h1>Meta Campaign Cleaner</h1>
+
+    <label for="fileInput">Загрузите файл (.csv, .xlsx, .xls)</label>
+    <input id="fileInput" type="file" accept=".csv,.xlsx,.xls" />
+
+    <button id="cleanBtn" type="button">Очистить и скачать</button>
+
+    <div id="log" class="log"></div>
+    <div class="note">Файл обрабатывается локально в браузере и не отправляется на сервер.</div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="./meta-campaign-cleaner.js"></script>
+</body>
+</html>
